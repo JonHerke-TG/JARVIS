@@ -1,4 +1,5 @@
 import { createDataSource } from "./data";
+import { sampleGraph } from "./sample";
 import { Orb, THEMES, type ThemeName } from "./orb";
 
 const app = document.getElementById("app")!;
@@ -21,10 +22,27 @@ button.addEventListener("click", toggle);
 window.addEventListener("keydown", (e) => e.key.toLowerCase() === "t" && toggle());
 applyTheme(theme);
 
-createDataSource()
-  .getGraph()
-  .then((graph) => { orb = new Orb(app, graph, theme); })
-  .catch((err) => {
-    console.error(err);
-    document.getElementById("caption")!.textContent = "Unable to reach the graph, sir.";
-  });
+const caption = document.getElementById("caption")!;
+const stats = document.getElementById("stats")!;
+const fmt = (n: number) => n.toLocaleString("en-US");
+
+async function boot() {
+  caption.textContent = "Loading graph\u2026";
+  await new Promise((r) => setTimeout(r, 50));
+  const t0 = performance.now();
+  const graph = await createDataSource().getGraph();
+  const loadMs = performance.now() - t0;
+  const t1 = performance.now();
+  const drawn = sampleGraph(graph);
+  const sampleMs = performance.now() - t1;
+  orb = new Orb(app, drawn, theme);
+  caption.textContent = "How may I help, sir?";
+  stats.textContent = `${fmt(graph.nodes.length)} nodes \u00b7 ${fmt(graph.edges.length)} edges loaded \u00b7 showing ${fmt(drawn.nodes.length)} / ${fmt(drawn.edges.length)}`;
+  console.info(`graph loaded in ${loadMs.toFixed(0)} ms, sampled in ${sampleMs.toFixed(0)} ms`, { nodes: graph.nodes.length, edges: graph.edges.length, drawnNodes: drawn.nodes.length, drawnEdges: drawn.edges.length });
+  (window as unknown as { __jarvis: object }).__jarvis = { loadMs, sampleMs, nodes: graph.nodes.length, edges: graph.edges.length, drawnNodes: drawn.nodes.length, drawnEdges: drawn.edges.length };
+}
+
+boot().catch((err) => {
+  console.error(err);
+  caption.textContent = "Unable to reach the graph, sir.";
+});

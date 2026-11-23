@@ -1,9 +1,14 @@
+import { generateMockGraph, type MockOptions } from "./mockGenerator";
 import type { GraphData, GraphDataSource } from "./types";
-import mock from "./mock-graph.json";
 
-/** Serves the static, seed-generated graph in `mock-graph.json` (see scripts/generate-mock.ts). */
+/**
+ * Builds the seeded mock graph (1.2M nodes / 4M edges by default) in memory.
+ * Nothing large is shipped or fetched; same seed, same graph.
+ */
 export class MockDataSource implements GraphDataSource {
+  constructor(private readonly options: MockOptions = {}) {}
+
   async getGraph(): Promise<GraphData> {
-    return mock as GraphData;
+    return generateMockGraph(this.options);
   }
 }
