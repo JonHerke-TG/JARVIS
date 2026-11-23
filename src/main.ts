@@ -1,30 +1,52 @@
 import { createDataSource } from "./data";
-import { sampleGraph } from "./sample";
-import { Orb, THEMES, type ThemeName } from "./orb";
+import { buildRenderModel, type RenderModel } from "./model";
+import { Orb, THEMES, type ThemeName, type ViewMode } from "./orb";
 
 const app = document.getElementById("app")!;
-const button = document.getElementById("theme") as HTMLButtonElement;
+const themeButton = document.getElementById("theme") as HTMLButtonElement;
+const viewButton = document.getElementById("view") as HTMLButtonElement;
+const caption = document.getElementById("caption")!;
+const stats = document.getElementById("stats")!;
+const fmt = (n: number) => n.toLocaleString("en-US");
 
-let theme: ThemeName = (localStorage.getItem("jarvis-theme") as ThemeName) in THEMES
-  ? (localStorage.getItem("jarvis-theme") as ThemeName)
-  : "cyan";
+const stored = localStorage.getItem("jarvis-theme") as ThemeName;
+let theme: ThemeName = stored in THEMES ? stored : "cyan";
+let mode: ViewMode = new URLSearchParams(location.search).get("view") === "sampled" ? "sampled" : "full";
 let orb: Orb | undefined;
+let model: RenderModel | undefined;
 
 function applyTheme(name: ThemeName) {
   theme = name;
   localStorage.setItem("jarvis-theme", name);
   document.documentElement.style.setProperty("--accent", THEMES[name].css);
-  button.textContent = `Theme: ${name}`;
+  themeButton.textContent = `Theme: ${name}`;
   orb?.setTheme(name);
 }
-const toggle = () => applyTheme(theme === "cyan" ? "gold" : "cyan");
-button.addEventListener("click", toggle);
-window.addEventListener("keydown", (e) => e.key.toLowerCase() === "t" && toggle());
-applyTheme(theme);
 
-const caption = document.getElementById("caption")!;
-const stats = document.getElementById("stats")!;
-const fmt = (n: number) => n.toLocaleString("en-US");
+function applyMode(next: ViewMode) {
+  mode = next;
+  viewButton.textContent = `View: ${next}`;
+  orb?.setMode(next);
+  renderStats();
+}
+
+function renderStats() {
+  if (!model) return;
+  const drawnNodes = mode === "full" ? model.nodeCount : model.sample.nodes.length;
+  const drawnEdges = mode === "full" ? model.edgeCount : model.sample.edges.length;
+  const fps = orb?.fps ? ` \u00b7 ${orb.fps.toFixed(orb.fps < 10 ? 2 : 0)} fps` : "";
+  stats.textContent = `drawing ${fmt(drawnNodes)} nodes / ${fmt(drawnEdges)} edges of ${fmt(model.nodeCount)} / ${fmt(model.edgeCount)} loaded (${mode})${fps}`;
+}
+
+themeButton.addEventListener("click", () => applyTheme(theme === "cyan" ? "gold" : "cyan"));
+viewButton.addEventListener("click", () => applyMode(mode === "full" ? "sampled" : "full"));
+window.addEventListener("keydown", (e) => {
+  const key = e.key.toLowerCase();
+  if (key === "t") applyTheme(theme === "cyan" ? "gold" : "cyan");
+  if (key === "s") applyMode(mode === "full" ? "sampled" : "full");
+});
+applyTheme(theme);
+applyMode(mode);
 
 async function boot() {
   caption.textContent = "Loading graph\u2026";
@@ -32,14 +54,16 @@ async function boot() {
   const t0 = performance.now();
   const graph = await createDataSource().getGraph();
   const loadMs = performance.now() - t0;
-  const t1 = performance.now();
-  const drawn = sampleGraph(graph);
-  const sampleMs = performance.now() - t1;
-  orb = new Orb(app, drawn, theme);
+  model = buildRenderModel(graph);
+  orb = new Orb(app, model, theme, mode);
+  await new Promise((r) => requestAnimationFrame(r));
+  const readyMs = performance.now() - t0;
   caption.textContent = "How may I help, sir?";
-  stats.textContent = `${fmt(graph.nodes.length)} nodes \u00b7 ${fmt(graph.edges.length)} edges loaded \u00b7 showing ${fmt(drawn.nodes.length)} / ${fmt(drawn.edges.length)}`;
-  console.info(`graph loaded in ${loadMs.toFixed(0)} ms, sampled in ${sampleMs.toFixed(0)} ms`, { nodes: graph.nodes.length, edges: graph.edges.length, drawnNodes: drawn.nodes.length, drawnEdges: drawn.edges.length });
-  (window as unknown as { __jarvis: object }).__jarvis = { loadMs, sampleMs, nodes: graph.nodes.length, edges: graph.edges.length, drawnNodes: drawn.nodes.length, drawnEdges: drawn.edges.length };
+  renderStats();
+  setInterval(renderStats, 1000);
+  const report = { loadMs: Math.round(loadMs), ...model.timings, readyMs: Math.round(readyMs), nodes: model.nodeCount, edges: model.edgeCount };
+  console.info("jarvis boot", report);
+  Object.assign(window, { __jarvis: { ...report, orb, fps: () => orb?.fps ?? 0, setMode: applyMode } });
 }
 
 boot().catch((err) => {

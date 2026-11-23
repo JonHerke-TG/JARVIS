@@ -16,13 +16,14 @@
         text-shadow: 0 0 12px var(--accent, #7fe9ff); pointer-events: none;
         animation: breathe 4s ease-in-out infinite;
       }
-      #theme {
+      #theme, #view {
         position: fixed; top: 20px; right: 20px; padding: 6px 14px; background: transparent;
         color: var(--accent, #7fe9ff); border: 1px solid var(--accent, #7fe9ff); border-radius: 2px;
         font: 11px "Courier New", monospace; letter-spacing: 0.2em; text-transform: uppercase;
         opacity: 0.6; cursor: pointer;
       }
-      #theme:hover { opacity: 1; }
+      #view { right: 150px; }
+      #view:hover, #theme:hover { opacity: 1; }
       #stats {
         position: fixed; left: 20px; bottom: 16px; font: 11px "Courier New", monospace;
         letter-spacing: 0.12em; color: var(--accent, #7fe9ff); opacity: 0.45; pointer-events: none;
@@ -35,6 +36,7 @@
     <div id="caption">How may I help, sir?</div>
     <div id="stats"></div>
     <button id="theme">Theme: cyan</button>
+    <button id="view">View: full</button>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
