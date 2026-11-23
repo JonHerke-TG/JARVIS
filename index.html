@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>J.A.R.V.I.S.</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #02060a; overflow: hidden; }
+      #app { position: fixed; inset: 0; cursor: grab; }
+      #app.dragging { cursor: grabbing; }
+      #caption {
+        position: fixed; left: 50%; bottom: 9vh; transform: translateX(-50%);
+        font: 300 clamp(14px, 1.6vw, 20px)/1 "Helvetica Neue", Arial, sans-serif;
+        letter-spacing: 0.32em; text-transform: uppercase; color: var(--accent, #7fe9ff);
+        text-shadow: 0 0 12px var(--accent, #7fe9ff); pointer-events: none;
+        animation: breathe 4s ease-in-out infinite;
+      }
+      #theme, #view {
+        position: fixed; top: 20px; right: 20px; padding: 6px 14px; background: transparent;
+        color: var(--accent, #7fe9ff); border: 1px solid var(--accent, #7fe9ff); border-radius: 2px;
+        font: 11px "Courier New", monospace; letter-spacing: 0.2em; text-transform: uppercase;
+        opacity: 0.6; cursor: pointer;
+      }
+      #view { right: 150px; }
+      #view:hover, #theme:hover { opacity: 1; }
+      #stats {
+        position: fixed; left: 20px; bottom: 16px; font: 11px "Courier New", monospace;
+        letter-spacing: 0.12em; color: var(--accent, #7fe9ff); opacity: 0.45; pointer-events: none;
+      }
+      @keyframes breathe { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="caption">How may I help, sir?</div>
+    <div id="stats"></div>
+    <button id="theme">Theme: cyan</button>
+    <button id="view">View: full</button>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
